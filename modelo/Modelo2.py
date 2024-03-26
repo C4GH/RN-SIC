@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import psutil
 from modelo import PositionalEncoding as pose
 
 class Modelo(nn.Module):
@@ -28,8 +29,31 @@ dropout = 0.05
 # Instanciación del demolo
 modelo = Modelo(d_model=d_model, nhead=nhead, num_layers=num_layers, num_classes=num_classes, dropout=dropout)
 
-# Cálculo del total de parámetros entrenables en el modelo
-total_params = sum(p.numel() for p in modelo.parameters() if p.requires_grad)
-print(f"Total de parámetros entrenables en el modelo: {total_params}")
+# Creación de una entrada de ejemplo y medición de la dimensionalidad
+input_tensor = torch.rand(32,10, d_model) # batch_size=31, sequence_length=10, embedding_dim=d_model
+print(f"Dimensionalidad de la entrada: {input_tensor.shape}")
 
-# Total fue de 1358654
+# Pasada de la entrada por el modelo
+output_tensor = modelo(input_tensor)
+print(f"Dimensionalidad de la salida: {output_tensor.shape}")
+
+# Cálculo del uso de memoria de los parámetros
+total_params = sum(p.numel() for p in modelo.parameters() if p.requires_grad)
+total_bytes = total_params * 4  # Asumiendo float32
+total_megabytes = total_bytes / (1024 ** 2)
+print(f"Total de parámetros entrenables en el modelo: {total_params}")
+print(f"Memoria aproximada de los parámetros: {total_megabytes} MB")
+
+
+# Medición del uso de memoria del proceso utilizando psutil
+process = psutil.Process()
+memory_info = process.memory_info()
+memory_usage_mb = memory_info.rss / (1024 ** 2)  # Convertir bytes a MB
+print(f"Uso de memoria del proceso: {memory_usage_mb} MB")
+
+"""
+Dimensionalidad de la salida: torch.Size([32, 10])
+Total de parámetros entrenables en el modelo: 1358654
+Memoria aproximada de los parámetros: 5.182853698730469 MB
+Uso de memoria del proceso: 195.62109375 MB
+"""
