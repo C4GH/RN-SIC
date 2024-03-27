@@ -35,7 +35,8 @@ dropout = 0.05
 
 modelo = Modelo( nhead=nhead, num_layers=num_layers, emb_size=emb_size, dropout=dropout)
 
-src=[2345,4456,34,.......] #vector de tokens
+src = [2345, 4456, 34, 6789]  # Valores de ejemplo, reemplaza con tus propios valores
+
 src_emb = src_tok_emb.emb(src) # se calcula el embedding aqui afuera 
 
 modelo.forward(src_emb)
