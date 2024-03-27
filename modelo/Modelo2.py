@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import psutil
-import sys
 from modelo import PositionalEncoding as pose
 
 class Modelo(nn.Module):
@@ -16,9 +15,9 @@ class Modelo(nn.Module):
     def forward(self, src):
         src = self.positional_encoding(src)
         output = self.transformer_encoder(src)
-        # output = output.mean(dim=1)
+        output = output.mean(dim=1)
         output = self.output_layer(output)
-        return F.log_softmax(output, dim=-1)
+        return F.log_softmax(output, dim=1)
 
 # Configuración del modelo
 d_model = 100 # Debe ser igual al embedding
@@ -31,11 +30,11 @@ dropout = 0.05
 modelo = Modelo(d_model=d_model, nhead=nhead, num_layers=num_layers, num_classes=num_classes, dropout=dropout)
 
 # Creación de una entrada de ejemplo y medición de la dimensionalidad
-input_tensor = torch.rand(1,200, d_model) # batch_size=31, sequence_length=10, embedding_dim=d_model
+input_tensor = torch.rand(32,10, d_model) # batch_size=31, sequence_length=10, embedding_dim=d_model
 print(f"Dimensionalidad de la entrada: {input_tensor.shape}")
 
 # Pasada de la entrada por el modelo
-output_tensor = modelo.forward(input_tensor)
+output_tensor = modelo(input_tensor)
 print(f"Dimensionalidad de la salida: {output_tensor.shape}")
 
 # Cálculo del uso de memoria de los parámetros
@@ -52,12 +51,8 @@ memory_info = process.memory_info()
 memory_usage_mb = memory_info.rss / (1024 ** 2)  # Convertir bytes a MB
 print(f"Uso de memoria del proceso: {memory_usage_mb} MB")
 
-memory_usage_modelo=sys.getsizeof(modelo)
-print(f"Uso  de memoria del modelo: {memory_usage_modelo} B")
-
-
 """
-Dimensionalidad de la salida: torch.Size([32, 10, 10])
+Dimensionalidad de la salida: torch.Size([32, 10])
 Total de parámetros entrenables en el modelo: 1358654
 Memoria aproximada de los parámetros: 5.182853698730469 MB
 Uso de memoria del proceso: 195.62109375 MB
