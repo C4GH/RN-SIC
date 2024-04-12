@@ -42,8 +42,8 @@ def collate_fn(batch):
     padded_indices = pad_sequence(indices_list,batch_first=True, padding_value=0)
 
     # Apilar etiquetas en un tensor
-    labels = torch.stack(labels_list)
-    return padded_indices, labels
+    padded_labbels = pad_sequence(labels_list, batch_first=True, padding_value=0.0)
+    return padded_indices, padded_labbels
 
 if __name__ == '__main__':
     embeddings_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embs_npa800.npy"
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     print(f"Tamaño del dataset en memoria: {total_size} bytes")
 
     # Creación del DataLoader
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
 
     # Iteración sobre el dataloader
     for embeddings, labels in dataloader:
