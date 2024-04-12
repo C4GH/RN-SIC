@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 import json
 from pympler import asizeof
@@ -24,16 +25,25 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        # convertir el texto a índices usando el vocabulario
-        indices = [self.vocab.get(word, self.vocab.get('<unk>')) for word in item['texto'].split()]
-        # Obtener los embeddings correspondientes a los índices
-        embeddings = self.embeddings[torch.tensor(indices, dtype=torch.long)]
+        # El texto a procesar está en el primer elemento de 'item'
+        text = item[0] # asumiendolo cadena de texto
+        indices = [self.vocab.get(word, self.vocab.get('<unk>')) for word in text.split()]
+        indices_tensor = torch.tensor(indices, dtype=torch.long)
+       # Usando las probabilidades como etiqueta
+        label = torch.tensor(item[1], dtype=torch.float)
 
-        label = item['etiqueta']
-        if isinstance(label, list) or isinstance(label, int):
-            label = torch.tensor(label, dtype=torch.long)
+        return indices_tensor, label
 
-        return embeddings, label
+def collate_fn(batch):
+    # descomponer el batch en listas de índices y etiquetas
+    indices_list, labels_list = zip(*batch)
+
+    # agrega paddinbg a la lista de índices para que todas tengan la misma longitud
+    padded_indices = pad_sequence(indices_list,batch_first=True, padding_value=0)
+
+    # Apilar etiquetas en un tensor
+    labels = torch.stack(labels_list)
+    return padded_indices, labels
 
 if __name__ == '__main__':
     embeddings_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embs_npa800.npy"
