@@ -5,8 +5,9 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 import json
-from pympler import asizeof
 import math
+import time
+import psutil
 
 # Definición del CustomDataset
 class CustomDataset(Dataset):
@@ -34,15 +35,18 @@ def collate_fn(batch):
     indices_list, labels_list = zip(*batch)
     padded_indices = pad_sequence(indices_list, batch_first=True, padding_value=0)
 
-    max_length = padded_indices.shape[1]
+    # Trim or pad to the desired number of tokens (200 in this case)
+    desired_length = 200  # This should match the expected num_tokens
+    if padded_indices.shape[1] > desired_length:
+        padded_indices = padded_indices[:, :desired_length]
+    elif padded_indices.shape[1] < desired_length:
+        padding_size = desired_length - padded_indices.shape[1]
+        padded_indices = torch.cat([padded_indices, torch.zeros(len(padded_indices), padding_size, dtype=torch.long)], dim=1)
 
-    # Pad labels to the maximum label length in the batch
-    max_label_length = max(label.size(0) for label in labels_list)
-    padded_labels = torch.zeros((len(labels_list), max_label_length), dtype=torch.float)
-    for i, label in enumerate(labels_list):
-        padded_labels[i, :label.size(0)] = label
+    padded_labels = pad_sequence(labels_list, batch_first=True, padding_value=0)
 
     return padded_indices, padded_labels
+
 
 # Definición de PositionalEncoding
 class PositionalEncoding(nn.Module):
@@ -70,24 +74,26 @@ class Modelo(nn.Module):
         self.num_layers = num_layers
         self.num_tokens = num_tokens
         self.num_classes = num_classes
+
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.positional_encoding = PositionalEncoding(embedding_dim, dropout)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=embedding_dim, nhead=nhead, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers)
-        self.output_layer = nn.Linear(embedding_dim * num_tokens, num_classes)
+        self.output_layer = nn.Linear(d_model * num_tokens, num_classes)
 
     def forward(self, emb1):
         emb1 = self.embedding(emb1) # Convierte indices a embeddings
-        print(f"Después de embedding: {emb1.shape}")
         emb1 = self.positional_encoding(emb1)
         emb1 = self.transformer_encoder(emb1)
-        print(f"Después de transformer encoder: {emb1.shape}")
         emb1 = emb1.view(emb1.size(0), -1) # Aplana salida para capa lineal
-        print(f"Después de aplanar: {emb1.shape}")
-        # Revisa si el aplanado coincide con el caso de entrada de la capa lineal
+        #print(f"Después de aplanar: {emb1.shape}")
+        # Calcula valor esperado
         expected_size = self.d_model * self.num_tokens
-        if emb1.size != expected_size:
-            raise ValueError(f'Expected size {expected_size}, but got {emb1.size(1)}')
+        actual_size = emb1.size(1)
+        # Revisa si el aplanado coincide con el caso de entrada de la capa lineal
+        if actual_size != expected_size:
+            raise ValueError(f'Expected size {expected_size}, but got {actual_size}')
+
         emb1 = self.output_layer(emb1)
         return F.softmax(emb1, dim=1)
 
@@ -101,14 +107,31 @@ if __name__ == '__main__':
     # Inicialización del dataset
     dataset = CustomDataset(json_path, embeddings_path, vocab_path)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
-
     # Inicialización del modelo
     vocab_size = 1866360
     embedding_dim = 300
     d_model = embedding_dim
     model = Modelo(vocab_size, embedding_dim, d_model, 4, 3, 200, 3, 0.05)
-    # Bucle para entrenar el modelo (aunque falta el optimizador y detalles de entrenamiento)
-    for indices, labels in dataloader:
-        # Aquí debes agregar el código para entrenar tu modelo
+
+    total_start_time = time.time()
+    process = psutil.Process()
+    total_memory_before = process.memory_info().rss
+
+    for batch_idx, (indices, labels) in enumerate(dataloader):
+        batch_start_time = time.time()
+
         predictions = model(indices)
-        print(predictions.size())
+        print(f"Output size for batch {batch_idx}: {predictions.size()}")
+        batch_time = time.time() - batch_start_time
+        batch_memory = process.memory_info().rss
+
+        print(f"Tiempo por batch {batch_idx}: {batch_time: .4f} segundos ")
+        print(f"Uso de memoria por batch {batch_idx}: {batch_memory / (1024 ** 2):.2f} MiB")
+
+    # Tiempo total y memoria usada
+    total_time = time.time() - total_start_time
+    total_memory_after = process.memory_info().rss
+    total_memory_used = total_memory_after - total_memory_before
+
+    print(f"Tiempo total de entrenamiento: {total_time:.4f} segundos ({total_time / 60:.2f} minutos)")
+    print(f"Total de memoria usada: {(total_memory_used / (1024 ** 2)):.2f} MiB")
