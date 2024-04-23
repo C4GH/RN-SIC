@@ -46,9 +46,9 @@ def collate_fn(batch):
     return padded_indices, padded_labbels
 
 if __name__ == '__main__':
-    embeddings_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embs_npa800.npy"
-    vocab_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\vocab_npa800.npy"
-    json_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida.json"
+    embeddings_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\embs_npa.npy"
+    vocab_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\vocab_npa.npy"
+    json_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\salida_prueba.json"
 
     # Inicialización del dataset
     dataset = CustomDataset(json_path, embeddings_path, vocab_path)
