@@ -13,7 +13,9 @@ def train(model, dataloader, epochs):
         for data, target, in dataloader:
             optimizer.zero_grad()
             output = model(data)
-            target = target.long()
+
+            print(f"Output type: {output.dtype}, output shape: {output.shape}")
+            print(f"Target type: {target.dtype}, output shape: {target.shape}")
             loss = criterion(output, target)
             loss.backward()
             optimizer.step()
