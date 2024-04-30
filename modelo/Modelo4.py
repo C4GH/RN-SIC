@@ -21,4 +21,4 @@ class Modelo(nn.Module):
         sal_en = self.transformer_encoder(emb1_pe)
         sal_en_aplanado = sal_en.view([batch_size, self.num_tokens * self.d_model])
         output = self.output_layer(sal_en_aplanado)
-        return F.softmax(output, 1)
+        return output

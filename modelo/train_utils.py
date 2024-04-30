@@ -10,20 +10,31 @@ def train(model, dataloader, epochs):
 
     best_loss = float('inf')
     for epoch in range(epochs):
-        for data, target, in dataloader:
+        for i, (data, target) in enumerate(dataloader):
             optimizer.zero_grad()
             output = model(data)
 
-            print(f"Output type: {output.dtype}, output shape: {output.shape}")
-            print(f"Target type: {target.dtype}, output shape: {target.shape}")
+            if torch.isnan(output).any():
+                print(f"Epoch {epoch}, Batch {i}: NaN detected in model output")
+                continue  # Skip this batch
+
             loss = criterion(output, target)
+
+            if torch.isnan(loss):
+                print(f"Epoch {epoch}, Batch {i}: Loss is NaN")
+                continue  # Skip the backward pass if loss is NaN
+
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # Apply gradient clipping
             optimizer.step()
 
             if loss.item() < best_loss:
                 best_loss = loss.item()
                 torch.save(model.state_dict(), 'best_model.pth')
-                print(f'Epoch {epoch}, Loss lowered to {best_loss}, model saved!')
+                print(f"Epoch {epoch}, Batch {i}, Loss lowered to {best_loss}, model saved!")
+
+            if i % 10 == 0:
+                print(f'Epoch {epoch}, Batch {i}, Current Loss: {loss.item()}')
 
 
 def test(model, dataloader):
@@ -34,6 +45,9 @@ def test(model, dataloader):
     with torch.no_grad():
         for data, target in dataloader:
             output = model(data)
+            if torch.isnan(output).any():
+                print("NaN detected in model output during testing")
+                continue  # Skip this batch
             test_loss += criterion(output, target.long()).item()
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
