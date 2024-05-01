@@ -42,13 +42,16 @@ def test(model, dataloader):
     criterion = nn.CrossEntropyLoss()
     test_loss = 0
     correct = 0
+    total_batches = len(dataloader)
     with torch.no_grad():
-        for data, target in dataloader:
+        for i, (data, target) in enumerate(dataloader):
             output = model(data)
-            if torch.isnan(output).any():
-                print("NaN detected in model output during testing")
-                continue  # Skip this batch
-            test_loss += criterion(output, target.long()).item()
+
+            # Print shapes every 10 batches
+            if i % 10 == 0:
+                print(f"Batch {i}/{total_batches} - Output shape: {output.shape}, Target shape: {target.shape}")
+
+            test_loss += criterion(output, target).item()
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
