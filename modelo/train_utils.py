@@ -25,7 +25,7 @@ def train(model, dataloader, epochs):
                 continue  # Skip the backward pass if loss is NaN
 
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # Apply gradient clipping
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # Apply gradient clipping
             optimizer.step()
 
             if loss.item() < best_loss:
