@@ -20,7 +20,7 @@ def main():
         test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
 
         # Initialize the model
-        model = Modelo(vocab_size=1866360, embedding_dim=300, d_model=300, nhead=4, num_layers=3, num_tokens=200, num_classes=3, dropout=0.05)
+        model = Modelo(vocab_size=1866360, embedding_dim=300, d_model=300, nhead=4, num_layers=3, num_tokens=300, num_classes=3, dropout=0.05)
         print("Model initialized.")  # Debug print
 
         # Train and test the model

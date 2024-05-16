@@ -40,7 +40,7 @@ def collate_fn(batch):
     padded_indices = pad_sequence(indices_list, batch_first=True, padding_value=0)
 
     # Trim or pad to the desired number of tokens (200 in this case)
-    desired_length = 200
+    desired_length = 300
     if padded_indices.shape[1] > desired_length:
         padded_indices = padded_indices[:, :desired_length]
     elif padded_indices.shape[1] < desired_length:
@@ -86,7 +86,9 @@ class Modelo(nn.Module):
         self.positional_encoding = PositionalEncoding(embedding_dim, dropout)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=embedding_dim, nhead=nhead, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers)
-        self.output_layer = nn.Linear(d_model * num_tokens, num_classes)
+        self.output_layer = nn.Linear(d_model * num_tokens, 150*2)
+        self.relu = nn.ReLU()
+        self.final_layer = nn.Linear(150 * 150, num_classes)
 
     def forward(self, input_indices):
         # Convert indices to embeddings
@@ -104,6 +106,8 @@ class Modelo(nn.Module):
             raise ValueError(f'Expected size {expected_size}, but got {actual_size}')
         # Calculate the output of the linear layer
         output = self.output_layer(emb1)
+        output = self.relu(output)
+        output = self.final_layer(output)
         return output
 
 
@@ -112,7 +116,7 @@ if __name__ == '__main__':
     # Rutas a los archivos necesarios
     embeddings_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\embs_npa.npy"
     vocab_path = r"C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\vocab_npa.npy"
-    json_path = r'C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\salida_entrenamiento_limpio.json'
+    json_path = r'C:\Users\afloresre\Documents\Cagh\Red\salida\embeddings 300\salida_min.json'
 
     # Inicialización del dataset
     dataset = CustomDataset(json_path, embeddings_path, vocab_path)
@@ -121,7 +125,7 @@ if __name__ == '__main__':
     vocab_size = 1866360
     embedding_dim = 300
     d_model = embedding_dim
-    model = Modelo(vocab_size, embedding_dim, d_model, 4, 3, 200, 3, 0.05)
+    model = Modelo(vocab_size, embedding_dim, d_model, 4, 3, 300, 3, 0.05)
 
     total_start_time = time.time()
     process = psutil.Process()
